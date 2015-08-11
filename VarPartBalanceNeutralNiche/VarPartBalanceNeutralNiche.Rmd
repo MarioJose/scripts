@@ -185,7 +185,7 @@ plot(all.varpart, Xnames = c("environment", "spatial"))
 ```
 
 <div style="text-align: center">
-  ![Variation partitioning](varpart.png)
+  <img src="varpart.png" alt="Variation partitioning" />
 </div>
 <br />
 
