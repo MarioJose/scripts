@@ -1,5 +1,7 @@
 # Variation partitioning and checking for balance between neutral and niche processes
 
+### Mario Jose Marques-Azevedo
+
 This script implement partition variance following Anderson and Legendre (1999), Blanchet et al. (2008), Bocard and Legendre (2011), Dray et al. (2006), Legendre et al. (2012), Legendre and Gallagher (2001) and Peres-Neto and Legendre (2010). Balance between neutral and niche processes following Diniz-Filho et al. (2012).
 
 [Danilo Rafael Mesquita Neves](http://lattes.cnpq.br/7825577355355814) and [Pedro V. Eisenlohr](http://pedroeisenlohr.webnode.com.br/) implemented variation partitioning and [Mario Jose Marques-Azevedo](https://github.com/mariojose) implemented balance between neutral and niche process.
