@@ -212,6 +212,8 @@ spa.aov
 
 Diniz et al. (2012) proposed a protocol to test if amount of variation predicted by pure spatial component [c] can be safely attributed to neutral process, rather than lack of spatially structured environmental predictor. If matrix correlation of species abundance (R) hasn't correlation with matrix of species spatial maps (M), then spatial component [c] can safely attributed do neutral process.
 
+This protocol is valid only if you species data contain species abundance. For occurrence data this protocol do not work. 
+
 Before start the analysis we need the download function `correlogI`. You can download the [`correlogI`](https://github.com/MarioJose/r-functions/tree/master/correlogI) function at [this link](https://raw.githubusercontent.com/MarioJose/r-functions/master/correlogI/correlogI.r). Save the function script at your work directory. Read [`correlogI`](https://github.com/MarioJose/r-functions/tree/master/correlogI) function page for more information.
 
 ```r
