@@ -1,10 +1,8 @@
-# Variation partitioning and checking for balance between neutral and niche processes
+# Variation partitioning and checking for missing environmental factor in spatial component
 
-### Mario Jose Marques-Azevedo
+#### Mario Jose Marques-Azevedo
 
-This script implement partition variance following Anderson and Legendre (1999), Blanchet et al. (2008), Bocard and Legendre (2011), Dray et al. (2006), Legendre et al. (2012), Legendre and Gallagher (2001) and Peres-Neto and Legendre (2010). Balance between neutral and niche processes following Diniz-Filho et al. (2012).
-
-[Danilo Rafael Mesquita Neves](http://lattes.cnpq.br/7825577355355814) and [Pedro V. Eisenlohr](http://pedroeisenlohr.webnode.com.br/) implemented variation partitioning and [Mario Jose Marques-Azevedo](https://github.com/mariojose) implemented balance between neutral and niche process.
+This text show how to run partition variance and check if spatial component cam be attributed to neutral process, rather than environmental factors that are missing from the analysis. The partition variance was implemented by [Danilo Rafael Mesquita Neves](http://lattes.cnpq.br/7825577355355814) and [Pedro V. Eisenlohr](http://pedroeisenlohr.webnode.com.br/) and following Anderson and Legendre (1999), Blanchet et al. (2008), Bocard and Legendre (2011), Dray et al. (2006), Legendre et al. (2012), Legendre and Gallagher (2001) and Peres-Neto and Legendre (2010). The protocol to check spatial component was implemented by [Mario Jose Marques-Azevedo](https://github.com/mariojose) and following Diniz-Filho et al. (2012).
 
 ## Installing packages
 
@@ -19,7 +17,7 @@ Before start with analysis, we need install some packages:
 
 If packages are not installed, run the following commands:
 
-```{r, eval = FALSE}
+```r
 install.packages("vegan") 
 install.packages("spdep") # spacemakeR dependence
 install.packages("ade4") # spacemakeR dependence
@@ -31,12 +29,14 @@ install.packages("spacemakeR", repos = "http://R-Forge.R-project.org")
 
 After installing the packages we need load them.
 
-```{r, eval = FALSE}
+```r
 library(vegan)
 library(packfor)
 library(spacemakeR)
 library(spdep)
 ```
+
+Do not forget to set your working directory with `setwd` command.
 
 ## Variation partitioning
 
@@ -50,7 +50,7 @@ Despite it is not necessary to remove collinear variables prior to variation par
 
 We will use Barro Colorado Island (`BCI`) database from Condit et al. (2002) and Zanne et al. (2014) available in `vegan` package as example.
 
-```{r, eval = FALSE}
+```r
 # Load data from vegan package
 data(BCI)
 BCI.env <- read.delim ('http://www.davidzeleny.net/anadat-r/lib/exe/fetch.php?media=data:bci.env.txt')
@@ -67,9 +67,9 @@ rownames(ll) <- rownames(spp) <- rownames(env) <- paste("site", 1:dim(ll)[1], se
 rm(BCI, BCI.env)
 ```
 
-To load yoyt data, you can use `read.table` command like that:
+To load your data, you can use `read.table` command like that:
 
-```{r, eval = FALSE}
+```r
 # Coordinate data (rows = sites; columns = long, lat)
 ll <- read.table(file.choose(), row.names = 1, header = T, sep = ",")
 
@@ -80,9 +80,11 @@ spp <- read.table(file.choose(), row.names =  1, header = T, sep = ",")
 env <- read.table(file.choose(), row.names = 1, header = T, sep = ",")
 ```
 
-Check if your data is using "," as data separator character. If you is using other, like ";" change "sep" parameter of `read.table` command. You need to check if first column of your database file is a row names. Check your data using:
+Check if your database file is using comma (",") as data separator character. If you is using other, like semicolon (";") or tabulation (" "), change "sep" parameter of `read.table` command for your case.
 
-```{r, eval = FALSE}
+Database files (for species abundance, environmental variables and coordinates data) must have the same rows names. For the three files, rows names are sites names of samples. Check your data using:
+
+```r
 View(ll)
 View(spp)
 View(env)
@@ -90,7 +92,7 @@ View(env)
 
 We need to prepare the data to analysis. For that, we need remove unicates (species that occur in one site) and standardize species and environmental data.
 
-```{r, eval = FALSE}
+```r
 # Removing unicates and Hellinger transformation
 spp.std <- decostand(spp[ ,apply(spp > 0, 2, sum) > 1], "hellinger")
 
@@ -100,8 +102,8 @@ env.std <- decostand(env, "standardize")
 
 We will generate and test the significance of spatial variables (Moran's Eigenvector Maps - MEMs) to use them in our analysis.
 
-```{r, eval = FALSE}
-# Convert to neighbours list. See Borcard et al. (2011) for details.
+```r
+# Convert coordinates to neighbours list. See Borcard et al. (2011) for details.
 ll.nb <- tri2nb(ll)
 
 # Spatial weights to neighbour list. See Borcard et al. (2011) for details.
@@ -113,7 +115,7 @@ mem <- scores.listw(ll.wgh)
 
 To make data visualization easier, we will naming columns and rows of generated MEMs vectors. 
 
-```{r, eval = FALSE}
+```r
 # Name columns
 colnames(mem$vectors) <- paste("MEM_", 1:ncol(mem$vectors), sep = "")
 
@@ -123,7 +125,7 @@ rownames(mem$vectors) <- rownames(ll)
 
 Now, we can compute and test Moran's I for MEMs and select only MEMs that are significant at 0.05 confidence level.
 
-```{r, eval = FALSE}
+```r
 # Compute and test Moran's I for eigenvectors of spatial weighting matrices
 mem.test <- test.scores(mem, ll.wgh, 999)
 
@@ -135,9 +137,9 @@ mem.sel <- list(values = mem$values[mem.test[ ,"pval"] < 0.05],
 dim(mem.sel$vectors)
 ```
 
-Finishing data to partition variance, we will select significant MEMs for our species data using forward selection.
+Finishing data to variation partitioning, we will select significant MEMs for our species data using forward selection.
 
-```{r, eval = FALSE}
+```r
 # Selecting MEMs via forward selection
 rda.spa <- rda(spp.std, mem.sel$vectors)
 rda.spa.sel <- forward.sel(spp.std, mem.sel$vectors, adjR2thresh = RsquareAdj(rda.spa)$adj.r.squared)
@@ -148,7 +150,7 @@ rda.spa.sel
 
 The same procedure for environmental data.
 
-```{r, eval = FALSE}
+```r
 # Selecting environmental variables via forward selection
 rda.env <- rda(spp.std, env.std)
 rda.env.sel <- forward.sel(spp.std, env.std, adjR2thresh = RsquareAdj(rda.env)$adj.r.squared)
@@ -157,9 +159,9 @@ rda.env.sel <- forward.sel(spp.std, env.std, adjR2thresh = RsquareAdj(rda.env)$a
 rda.env.sel
 ```
 
-We will create a `spatial` variable with only MEMs selected by forwarding select. The same to environmental selected, `environment` variable. This variables will be used in variance partitioning.
+We will create a `spatial` variable with only MEMs selected by forwarding select procedure. The same will be done to environmental variables selected, `environment` variable. This variables will be used in variation partitioning.
 
-```{r, eval = FALSE}
+```r
 # Preparing selected variables for variance partitioning
 
 # Filter MEMs from significant selected MEMs to MEMs selected in RDA
@@ -178,7 +180,7 @@ dim(environment)
 
 Finally we will run variation partitioning.
 
-```{r, eval = FALSE}
+```r
 # Variance partitioning
 all.varpart <- varpart(spp.std, environment, spatial$vectors)
 all.varpart
@@ -191,9 +193,9 @@ plot(all.varpart, Xnames = c("environment", "spatial"))
 </div>
 <br />
 
-Now we can testing environmental and spatial significance.
+Now we can testing environmental and spatial components significance.
 
-```{r, eval = FALSE}
+```r
 # Testing the environmental significance, after considering the effect of selected MEMs
 rda.env.spa <- rda(spp.std, environment, spatial$vectors)
 env.aov <- anova(rda.env.spa)
@@ -206,27 +208,27 @@ spa.aov <- anova(rda.spa.env)
 spa.aov
 ```
 
-## Balance between neutral and niche process
+## Checking for missing environmental factor in spatial component
 
-Diniz et al. (2012) proposed a framework to test if amount of variation predicted by pure spatial component [c] can be safely attributed to neutral process, rather than lack of spatially structured environmental predictor. If correlation of species abundance (R) hasn't correlation with species spatial map (M), then spatial component [c] can safely attributed do neutral process.
+Diniz et al. (2012) proposed a protocol to test if amount of variation predicted by pure spatial component [c] can be safely attributed to neutral process, rather than lack of spatially structured environmental predictor. If matrix correlation of species abundance (R) hasn't correlation with matrix of species spatial maps (M), then spatial component [c] can safely attributed do neutral process.
 
-First, we need the function `correlogI` to do analysis. You can download the [`correlogI`](https://github.com/MarioJose/r-functions/tree/master/correlogI) function at [this link](https://raw.githubusercontent.com/MarioJose/r-functions/master/correlogI/correlogI.r). Save the function script at your work directory. Read [`correlogI`](https://github.com/MarioJose/r-functions/tree/master/correlogI) function page for more information.
+Before start the analysis we need the download function `correlogI`. You can download the [`correlogI`](https://github.com/MarioJose/r-functions/tree/master/correlogI) function at [this link](https://raw.githubusercontent.com/MarioJose/r-functions/master/correlogI/correlogI.r). Save the function script at your work directory. Read [`correlogI`](https://github.com/MarioJose/r-functions/tree/master/correlogI) function page for more information.
 
-```{r, eval = FALSE}
+```r
 # Load correlogram function.
 source("correlogI.r")
 ```
 
 We will define the number of class for our correlogram using Sturges's rule
 
-```{r, eval = FALSE}
+```r
 # Number of classes: Sturges' rule
 nc <- round(1 + (1/log10(2)) * log10(length(dist(ll)[upper.tri(dist(ll), diag = FALSE)])), 0)
 ```
 
 We will predict species abundance from pure spatial variation [c]. For this we predict abundance from a full model [a + b + c] and subtract from abundance predicted from environmental model [a + b]. After that, we will create a correlation matrix (R) of abundance predicted by pure spatial component.
 
-```{r, eval = FALSE}
+```r
 # Predicting species abundance from pure spatial variation [c]
 pred.spa <- predict(rda(spp.std, cbind(environment, spatial$vectors))) - predict(rda(spp.std, environment))
 
@@ -236,7 +238,7 @@ R <- cor(pred.spa)
 
 Now, we will calculate correlogram for each species.
 
-```{r, eval = FALSE}
+```r
 # Matrix with species correlogram
 corr <- matrix(NA, nrow = nc, ncol = dim(pred.spa)[2], dimnames = list(1:nc, colnames(pred.spa)))
 
@@ -248,7 +250,7 @@ rm(i)
 
 Then, we can create a matrix of pairwise Manhattan similarity (M) among species correlogram.
 
-```{r, eval = FALSE}
+```r
 # Matrix of pairwise similarity among correlogram (Manhattan distance)
 M <- matrix(NA, nrow = dim(pred.spa)[2], dim(pred.spa)[2], dimnames = list(names(pred.spa), names(pred.spa)))
 
@@ -260,6 +262,7 @@ for(k in 1:nc){
   tmp[, , k] <- abs(tmat - t(tmat)) / nc
 }
 
+# Sum distance classes difference (z axis)
 M[] <- apply(tmp, c(1,2), sum, na.rm = TRUE)
 
 rm(k, tmp)
@@ -267,10 +270,12 @@ rm(k, tmp)
 
 Finally, we can check if neutral process can be safely attributed to spatial component.
 
-```{r, eval = FALSE}
+```r
 # Checking with R and M are correlated
 mantel(M, R)
 ```
+
+If we have no correlation (Matel correlation) among M and R matrix, we can safely attribute neutral process to spatial component.
 
 # Bibliography
 
