@@ -80,7 +80,7 @@ spp <- read.table(file.choose(), row.names =  1, header = T, sep = ",")
 env <- read.table(file.choose(), row.names = 1, header = T, sep = ",")
 ```
 
-Check if your database file is using comma (",") as data separator character. If you is using other, like semicolon (";") or tabulation (" "), change "sep" parameter of `read.table` command for your case.
+Check if your database file is using comma (",") as data separator character. If you is using other, like semicolon (";") or tabulation ("\\t"), change "sep" parameter of `read.table` command for your case.
 
 Database files (for species abundance, environmental variables and coordinates data) must have the same rows names. For the three files, rows names are sites names of samples. Check your data using:
 
@@ -137,6 +137,10 @@ mem.sel <- list(values = mem$values[mem.test[ ,"pval"] < 0.05],
 dim(mem.sel$vectors)
 ```
 
+```
+[1] 50 39
+```
+
 Finishing data to variation partitioning, we will select significant MEMs for our species data using forward selection.
 
 ```r
@@ -146,6 +150,17 @@ rda.spa.sel <- forward.sel(spp.std, mem.sel$vectors, adjR2thresh = RsquareAdj(rd
 
 #Checking selected MEMs for species data
 rda.spa.sel
+```
+
+```
+  variables order         R2      R2Cum   AdjR2Cum        F  pval
+1     MEM_1     1 0.08306955 0.08306955 0.06396683 4.348572 0.001
+2     MEM_7     7 0.05784531 0.14091486 0.10435804 3.164680 0.001
+3     MEM_3     3 0.04802067 0.18893552 0.13604001 2.723520 0.001
+4     MEM_5     5 0.04517433 0.23410986 0.16603073 2.654225 0.001
+5     MEM_4     4 0.04403388 0.27814374 0.19611462 2.684040 0.001
+6     MEM_2     2 0.04203541 0.32017915 0.22532042 2.658822 0.002
+7     MEM_9     9 0.03778533 0.35796448 0.25095856 2.471801 0.001
 ```
 
 The same procedure for environmental data.
@@ -159,6 +174,14 @@ rda.env.sel <- forward.sel(spp.std, env.std, adjR2thresh = RsquareAdj(rda.env)$a
 rda.env.sel
 ```
 
+```
+  variables order         R2     R2Cum   AdjR2Cum        F  pval
+1     slope     3 0.10651196 0.1065120 0.08789763 5.722040 0.001
+2 elevation     1 0.05324654 0.1597585 0.12400354 2.978414 0.001
+3    convex     2 0.05551453 0.2152730 0.16409519 3.254213 0.001
+4  aspectEW     4 0.03093983 0.2462129 0.17920957 1.847063 0.008
+```
+
 We will create a `spatial` variable with only MEMs selected by forwarding select procedure. The same will be done to environmental variables selected, `environment` variable. This variables will be used in variation partitioning.
 
 ```r
@@ -170,12 +193,22 @@ spatial <- list(values = mem.sel$values[colnames(mem.sel$vectors) %in% rda.spa.s
 
 # Checking selected MEMs
 dim(spatial$vectors)
+```
 
+```
+[1] 50  7
+```
+
+```r
 # Filter environment data to selected environmental variables in RDA
 environment <- env.std[ ,rda.env.sel$variables]
 
 # Checking selected environmental variables
 dim(environment)
+```
+
+```
+[1] 50  4
 ```
 
 Finally we will run variation partitioning.
@@ -184,7 +217,37 @@ Finally we will run variation partitioning.
 # Variance partitioning
 all.varpart <- varpart(spp.std, environment, spatial$vectors)
 all.varpart
+```
 
+```
+Partition of variation in RDA
+
+Call: varpart(Y = spp.std, X = environment, spatial$vectors)
+
+Explanatory tables:
+X1:  environment
+X2:  spatial$vectors 
+
+No. of explanatory tables: 2 
+Total variation (SS): 12.203 
+            Variance: 0.24904 
+No. of observations: 50 
+
+Partition table:
+                     Df R.squared Adj.R.squared Testable
+[a+b] = X1            4   0.24621       0.17921     TRUE
+[b+c] = X2            7   0.35796       0.25096     TRUE
+[a+b+c] = X1+X2      11   0.48340       0.33386     TRUE
+Individual fractions                                    
+[a] = X1|X2           4                 0.08290     TRUE
+[b]                   0                 0.09631    FALSE
+[c] = X2|X1           7                 0.15465     TRUE
+[d] = Residuals                         0.66614    FALSE
+---
+Use function 'rda' to test significance of fractions of interest
+```
+
+```r
 plot(all.varpart, Xnames = c("environment", "spatial"))
 ```
 
@@ -200,12 +263,40 @@ Now we can testing environmental and spatial components significance.
 rda.env.spa <- rda(spp.std, environment, spatial$vectors)
 env.aov <- anova(rda.env.spa)
 env.aov
+```
 
+```
+Permutation test for rda under reduced model
+Permutation: free
+Number of permutations: 999
+
+Model: rda(X = spp.std, Y = environment, Z = spatial$vectors)
+         Df Variance      F Pr(>F)    
+Model     4 0.031238 2.3067  0.001 ***
+Residual 38 0.128652                  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+```
+
+```r
 # Testing the spatial significance, after considering the effect of selected 
 #  environmental variables
 rda.spa.env <- rda(spp.std, spatial$vectors, environment) 
 spa.aov <- anova(rda.spa.env)
 spa.aov
+```
+
+```
+Permutation test for rda under reduced model
+Permutation: free
+Number of permutations: 999
+
+Model: rda(X = spp.std, Y = spatial$vectors, Z = environment)
+         Df Variance      F Pr(>F)    
+Model     7 0.059068 2.4924  0.001 ***
+Residual 38 0.128652                  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ```
 
 ## Checking for missing environmental factor in spatial component
@@ -277,28 +368,44 @@ Finally, we can check if neutral process can be safely attributed to spatial com
 mantel(M, R)
 ```
 
+```
+Mantel statistic based on Pearson's product-moment correlation 
+
+Call:
+mantel(xdis = M, ydis = R) 
+
+Mantel statistic r: -0.02087 
+      Significance: 0.971 
+
+Upper quantiles of permutations (null model):
+   90%    95%  97.5%    99% 
+0.0129 0.0167 0.0188 0.0214 
+Permutation: free
+Number of permutations: 999
+```
+
 If we have no correlation (Matel correlation) among M and R matrix, we can safely attribute neutral process to spatial component.
 
 # Bibliography
 
-Anderson, M. J. & P. Legendre. 1999. An empirical comparison of permutation methods for tests of partial regression coefficients in a linear model. Journal of Statistical Computation and Simulation 62: 271-303.
+Anderson, M. J. & P. Legendre. 1999. An empirical comparison of permutation methods for tests of partial regression coefficients in a linear model. [Journal of Statistical Computation and Simulation 62: 271-303](http://www.tandfonline.com/doi/abs/10.1080/00949659908811936).
 
-Blanchet F. G., P. Legendre, and D. Borcard. 2008. Forward selection of explanatory variables. Ecology 89: 2623-2632.
+Blanchet F. G., P. Legendre, and D. Borcard. 2008. Forward selection of explanatory variables. [Ecology 89: 2623-2632](http://www.esajournals.org/doi/abs/10.1890/07-0986.1).
 
-Borcard, D., F. Gillet & P. Legendre. 2011. Numerical Ecology with R. Springer, New York, 302p.
+Borcard, D., F. Gillet & P. Legendre. 2011. Numerical Ecology with R. [Springer, New York, 302p](http://www.springer.com/us/book/9781441979759).
 
-Diniz-Filho, J. A. F. et al. 2012. Spatial autocorrelation analysis allows disentangling the balance between neutral and niche processes in metacommunities. Oikos 121: 201–210.
+Diniz-Filho, J. A. F. et al. 2012. Spatial autocorrelation analysis allows disentangling the balance between neutral and niche processes in metacommunities. [Oikos 121: 201–210](http://onlinelibrary.wiley.com/doi/10.1111/j.1600-0706.2011.19563.x/abstract).
 
-Dray, S., P. Legendre and P. Peres-Neto. 2006. Spatial modelling: a comprehensive framework for principal coordinate analysis of neighbor matrices (PCNM). Ecological Modelling 196: 483-493.
+Dray, S., P. Legendre and P. Peres-Neto. 2006. Spatial modelling: a comprehensive framework for principal coordinate analysis of neighbor matrices (PCNM). [Ecological Modelling 196: 483-493](http://www.sciencedirect.com/science/article/pii/S0304380006000925).
 
-Legendre, P., D. Borcard and D. W. Roberts. 2012. Variation partitioning involving orthogonal spatial eigenfunction submodels. Ecology 93: 1234-1240.
+Legendre, P., D. Borcard and D. W. Roberts. 2012. Variation partitioning involving orthogonal spatial eigenfunction submodels. [Ecology 93: 1234-1240](http://www.esajournals.org/doi/abs/10.1890/11-2028.1).
 
-Legendre, P. and E. Gallagher. 2001. Ecologically meaningful transformations for ordination of species data. Oecologia 129: 271-280.
+Legendre, P. and E. Gallagher. 2001. Ecologically meaningful transformations for ordination of species data. [Oecologia 129: 271-280](http://link.springer.com/article/10.1007/s004420100716).
 
-Peres-Neto, P. R. and P. Legendre. 2010. Estimating and controlling for spatial structure in the study of ecological communities. Global Ecology and Biogeography 19: 174-184.
+Peres-Neto, P. R. and P. Legendre. 2010. Estimating and controlling for spatial structure in the study of ecological communities. [Global Ecology and Biogeography 19: 174-184](http://onlinelibrary.wiley.com/doi/10.1111/j.1466-8238.2009.00506.x/abstract).
 
 # Data bibliography
 
-Condit, R, Pitman, N, Leigh, E.G., Chave, J., Terborgh, J., Foster, R.B., Nuñez, P., Aguilar, S., Valencia, R., Villa, G., Muller-Landau, H.C., Losos, E. & Hubbell, S.P. (2002). Beta-diversity in tropical forest trees. Science 295, 666–669.
+Condit, R, Pitman, N, Leigh, E.G., Chave, J., Terborgh, J., Foster, R.B., Nuñez, P., Aguilar, S., Valencia, R., Villa, G., Muller-Landau, H.C., Losos, E. & Hubbell, S.P. (2002). Beta-diversity in tropical forest trees. [Science 295, 666–669](http://www.sciencemag.org/content/295/5555/666).
 
-Zanne A.E., Tank D.C., Cornwell, W.K., Eastman J.M., Smith, S.A., FitzJohn, R.G., McGlinn, D.J., O’Meara, B.C., Moles, A.T., Reich, P.B., Royer, D.L., Soltis, D.E., Stevens, P.F., Westoby, M., Wright, I.J., Aarssen, L., Bertin, R.I., Calaminus, A., Govaerts, R., Hemmings, F., Leishman, M.R., Oleksyn, J., Soltis, P.S., Swenson, N.G., Warman, L. & Beaulieu, J.M. (2014) Three keys to the radiation of angiosperms into freezing environments. Nature 506, 89–92, doi:10.1038/nature12872.
+Zanne A.E., Tank D.C., Cornwell, W.K., Eastman J.M., Smith, S.A., FitzJohn, R.G., McGlinn, D.J., O’Meara, B.C., Moles, A.T., Reich, P.B., Royer, D.L., Soltis, D.E., Stevens, P.F., Westoby, M., Wright, I.J., Aarssen, L., Bertin, R.I., Calaminus, A., Govaerts, R., Hemmings, F., Leishman, M.R., Oleksyn, J., Soltis, P.S., Swenson, N.G., Warman, L. & Beaulieu, J.M. (2014) Three keys to the radiation of angiosperms into freezing environments. [Nature 506, 89–92](http://www.nature.com/nature/journal/v506/n7486/full/nature12872.html), doi:10.1038/nature12872.
