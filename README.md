@@ -1,2 +1,2 @@
 # scripts
-Scripts and tutorial with to do something.
+Scripts and tutorial for to do something.
